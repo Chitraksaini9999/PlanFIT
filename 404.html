@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="3; url=./index.html">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found — Planfit Pro</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 24px;
+      background-color: var(--bg-main, #060913);
+      color: var(--text-main, #f8fafc);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .not-found-card {
+      background: var(--bg-card, rgba(14, 20, 36, 0.90));
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.09));
+      padding: 40px 28px;
+      border-radius: 20px;
+      max-width: 420px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .glitch-code {
+      font-size: 3.5rem;
+      font-weight: 900;
+      font-family: 'Outfit', sans-serif;
+      background: var(--accent-grad, linear-gradient(135deg, #00f0ff 0%, #7928ca 100%));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .btn-return {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 28px;
+      background: var(--accent-grad, linear-gradient(135deg, #00f0ff 0%, #7928ca 100%));
+      color: #fff;
+      font-weight: 700;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: transform 0.2s;
+    }
+    .btn-return:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body data-theme="3d-cyber">
+  <div class="not-found-card">
+    <div class="glitch-code">404</div>
+    <h2 style="font-size:1.3rem; margin-bottom:8px;">Routine Not Found</h2>
+    <p style="color:var(--text-sub, #94a3b8); font-size:0.9rem;">The page you are looking for does not exist. Redirecting you back to Planfit Command Center in 3 seconds...</p>
+    <a href="./index.html" class="btn-return">Return to Workouts</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070a14">
+<title>Planfit Pro — Mobile Workout Runner &amp; Tracker</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body data-theme="3d-cyber">
+
+<!-- Ambient Performance Canvas -->
+<canvas id="ambientCanvas"></canvas>
+<div id="appToast" class="app-toast"></div>
+
+<!-- Confetti Canvas -->
+<canvas id="confettiCanvas"></canvas>
+
+<!-- Top Command Header -->
+<header class="app-header">
+  <div class="app-brand" onclick="switchNav('tabWorkouts')">
+    <div class="app-logo">PF</div>
+    <div class="app-title-wrap">
+      <div class="app-title">PLANFIT PRO</div>
+    </div>
+  </div>
+  
+  <div class="app-header-actions">
+    <!-- Quick 3D Theme Dropdown -->
+    <select class="theme-dropdown-select" id="headerThemePicker" onchange="changeTheme(this.value)" title="Visual Theme">
+      <option value="3d-cyber">🎮 Cyber</option>
+      <option value="3d-gold">👑 Gold</option>
+      <option value="3d-emerald">💎 Emerald</option>
+      <option value="3d-violet">🔮 Violet</option>
+      <option value="3d-crimson">🔴 Crimson</option>
+      <option value="synthwave">🌆 Miami</option>
+      <option value="stealth">🌑 Stealth</option>
+    </select>
+
+    <!-- Always Visible Header Timer Pill right beside Theme Dropdown -->
+    <div id="workoutStatusIndicator" class="header-timer-pill" onclick="handleHeaderTimerClick()" title="Workout & Stopwatch Timer">
+      <div class="live-dot" id="headerLiveDot"></div>
+      <span id="headerTimer">00:00</span>
+    </div>
+  </div>
+</header>
+
+<!-- NATIVE ANDROID APK DOWNLOAD BANNER -->
+<div class="apk-download-banner app-download-only-web" id="apkDownloadBanner" data-download-apk="true">
+  <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+    <div class="apk-download-icon">🤖</div>
+    <div style="min-width:0;">
+      <div style="font-weight:900; font-size:0.86rem; color:#fff; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span>Planfit Workout Tracker</span>
+        <span style="font-size:0.64rem; background:rgba(0,255,136,0.18); color:var(--accent-emerald); border:1px solid rgba(0,255,136,0.4); padding:2px 7px; border-radius:999px; font-weight:800;">APK 1.10 MB</span>
+      </div>
+      <div style="font-size:0.71rem; color:var(--text-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        Native Android App • Background Tracking &amp; Offline Ready
+      </div>
+    </div>
+  </div>
+  <a href="./Planfit_Workout_Tracker.apk" download="Planfit_Workout_Tracker.apk" class="btn-download-apk" title="Download Native Android APK">
+    <span>📥 DOWNLOAD APK</span>
+  </a>
+</div>
+
+<!-- Sticky In-Progress Workout Banner -->
+<div class="sticky-workout-banner" id="stickyWorkoutBanner" onclick="switchNav('tabRunner')">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <span>⚡ ACTIVE SESSION:</span>
+    <span id="stickyBannerTitle">Chest & Triceps</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span id="stickyBannerTime">00:00</span>
+    <span>RESUME ➔</span>
+  </div>
+</div>
+
+<!-- COMMAND CENTER HUD TELEMETRY -->
+<div class="hud-telemetry-grid">
+  <div class="hud-tile">
+    <div class="hud-val" id="hudReadinessVal" style="color:var(--accent-emerald);">96%</div>
+    <div class="hud-lbl">Readiness HUD</div>
+  </div>
+  <div class="hud-tile">
+    <div class="hud-val" id="hudWeeklyVolVal" style="color:var(--accent-primary);">18.4k</div>
+    <div class="hud-lbl">Weekly Volume</div>
+  </div>
+  <div class="hud-tile">
+    <div class="hud-val" id="hudStreakVal" style="color:var(--accent-amber);">5 Days</div>
+    <div class="hud-lbl">Training Streak</div>
+  </div>
+</div>
+
+<!-- TODAY'S MISSION LAUNCHER -->
+<div class="mission-banner">
+  <div class="mission-info">
+    <div class="mission-badge">🎯 TODAY'S SCHEDULED SPLIT</div>
+    <div class="mission-title" id="hudTodaySplitTitle">Upper Chest & Triceps</div>
+    <div class="mission-sub" id="hudTodaySplitMeta">8 Exercises • Progressive Overload Engine</div>
+  </div>
+  <button class="btn-launch-hud" onclick="startCurrentRoutine()">
+    ▶ LAUNCH
+  </button>
+</div>
+
+<!-- ========================================================
+     TAB 1: WORKOUTS & SPLIT MANAGER
+     ======================================================== -->
+<section id="tabWorkouts" class="tab-view active">
+  
+
+  <div class="days-chips-scroll" id="daysChipsContainer">
+    <!-- Day chips inserted via JS -->
+  </div>
+
+  <div class="routine-card" id="routineSummaryCard">
+    <span class="routine-badge" id="routineBadge">TODAY'S SPLIT</span>
+    <h2 class="routine-title" id="routineTitle">Upper Chest & Triceps</h2>
+    <div class="routine-meta" id="routineMeta">8 Exercises • 32 Sets • Progressive Overload Protocol</div>
+    
+    <div class="routine-actions-row">
+      <button class="btn-start-workout" onclick="startCurrentRoutine()">
+        ▶ START WORKOUT
+      </button>
+      <button class="btn-add-ex-trigger" onclick="openExerciseLibraryModal()">
+        ➕ Add Exercise
+      </button>
+    </div>
+  </div>
+
+  <!-- Warm-up protocol -->
+  <div style="margin-bottom: 14px;">
+    <div style="font-family:'Outfit',sans-serif; font-size:0.82rem; font-weight:900; color:var(--accent-amber); margin-bottom:8px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+      <span>🔥 Pre-Exhaust Warm-Up Protocol</span>
+      <span style="font-size:0.7rem; color:var(--text-muted);">INJURY SHIELD</span>
+    </div>
+    <div id="warmupList" style="display:flex; flex-direction:column; gap:6px;">
+      <!-- Populated via JS -->
+    </div>
+  </div>
+
+  <!-- Exercise List preview with Add/Remove -->
+  <div>
+    <div style="font-family:'Outfit',sans-serif; font-size:0.82rem; font-weight:900; color:var(--text-sub); margin-bottom:10px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+      <span>Targeted Exercises (<span id="previewExCount">8</span>)</span>
+      <span style="color:var(--accent-primary); cursor:pointer;" onclick="openExerciseLibraryModal()">+ Add New</span>
+    </div>
+    <div class="ex-list" id="exercisePreviewList">
+      <!-- Exercise items inserted via JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     TAB 2: RUNNER & ACCURATE SET TRACKING WITH QUICK BUMPS
+     ======================================================== -->
+<section id="tabRunner" class="tab-view">
+  <div class="runner-container" id="runnerContainer">
+    <!-- Runner Header -->
+    <div class="runner-header">
+      <div>
+        <div style="font-size:0.7rem; color:var(--text-muted); font-weight:800;">TOTAL SESSION TIME</div>
+        <div class="runner-timer-val" id="runnerElapsed">00:00</div>
+      </div>
+      <button class="btn-finish-workout" onclick="finishWorkout()">
+        ✓ FINISH SESSION
+      </button>
+    </div>
+
+    <div class="runner-progress-bar">
+      <div class="runner-progress-fill" id="runnerProgressFill"></div>
+    </div>
+
+    <!-- Active Exercise Card -->
+    <div class="active-ex-card">
+      <div class="active-ex-img-wrap">
+        <img src="" id="runnerExImg" class="active-ex-img" alt="Exercise">
+        <div class="active-ex-num" id="runnerExNum">#1 / 8</div>
+      </div>
+      <div class="active-ex-body">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2 class="active-ex-title" id="runnerExTitle">Flat Dumbbell Press</h2>
+            <div class="active-ex-target" id="runnerExTarget">Chest (Pectoralis Major)</div>
+          </div>
+          <button class="btn-add-ex-trigger" onclick="openExerciseLibraryModal()" style="padding:6px 10px; font-size:0.75rem;">
+            ➕ Add
+          </button>
+        </div>
+
+        <div class="active-ex-cues" id="runnerExCues">
+          💡 Drive through chest, maintain arch and retracted scapula.
+        </div>
+
+        <!-- SEPARATE DEDICATED EXERCISE TIMER & STOPWATCH WIDGET -->
+        <div class="ex-timer-widget">
+          <div class="ex-timer-header">
+            <div class="ex-timer-title">
+              <span>⏱️ EXERCISE TELEMETRY TIMER</span>
+              <span id="timerStatusBadge" style="color:var(--accent-emerald); font-size:0.72rem; font-weight:800;">• READY</span>
+            </div>
+            <div class="ex-timer-mode-toggle">
+              <button class="timer-mode-btn active" id="btnModeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
+              <button class="timer-mode-btn" id="btnModeCountdown" onclick="setTimerMode('countdown')">Countdown</button>
+            </div>
+          </div>
+
+          <div class="ex-timer-display-wrap">
+            <div class="timer-ring-container">
+              <svg class="timer-ring-svg" viewBox="0 0 90 90">
+                <circle class="timer-ring-bg" cx="45" cy="45" r="40"></circle>
+                <circle class="timer-ring-progress" id="timerRingCircle" cx="45" cy="45" r="40"></circle>
+              </svg>
+              <div class="timer-ring-inner" id="timerRingDisplay">00:00</div>
+            </div>
+
+            <div>
+              <div class="timer-readout-big" id="timerDigitalClock">00:00.0</div>
+              <div style="font-size:0.72rem; color:var(--text-sub);" id="timerSubLabel">Time Under Tension (TUT)</div>
+            </div>
+          </div>
+
+          <!-- Presets for Countdown -->
+          <div class="timer-presets-row" id="timerPresetsRow" style="display:none;">
+            <div class="timer-preset-pill" onclick="setTimerDuration(30)">30s</div>
+            <div class="timer-preset-pill active" onclick="setTimerDuration(45)">45s</div>
+            <div class="timer-preset-pill" onclick="setTimerDuration(60)">60s</div>
+            <div class="timer-preset-pill" onclick="setTimerDuration(90)">90s</div>
+            <div class="timer-preset-pill" onclick="setTimerDuration(120)">120s</div>
+          </div>
+
+          <div class="timer-controls-row">
+            <button class="btn-timer-ctrl primary" id="btnTimerToggle" onclick="toggleExerciseTimer()">
+              ▶ Start Timer
+            </button>
+            <button class="btn-timer-ctrl secondary" onclick="resetExerciseTimer()">
+              🔄 Reset
+            </button>
+            <button class="btn-timer-ctrl secondary" onclick="recordTutToActiveSet()">
+              📝 Log TUT
+            </button>
+          </div>
+        </div>
+
+        <!-- SET LOGGING MATRIX WITH RAPID BUMP BUTTONS -->
+        <div style="margin-bottom: 12px;" id="runnerSetsContainer">
+          <!-- Dynamically inserted set cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Runner Navigation Buttons -->
+    <div style="display:flex; gap:10px;">
+      <button class="btn-add-ex-trigger" style="flex:1;" onclick="prevExercise()">← Previous</button>
+      <button class="btn-start-workout" style="flex:1;" onclick="nextExercise()">Next Exercise →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     TAB 3: EFFORTLESS SCHEDULER & CALENDAR COMMAND
+     ======================================================== -->
+<section id="tabCalendar" class="tab-view">
+  <!-- Weekly Split Matrix Reassigner -->
+  <div class="schedule-quick-matrix">
+    <div class="schedule-matrix-header">
+      <div style="font-family:'Outfit',sans-serif; font-size:1.05rem; font-weight:900;">⚡ Weekly Split Manager</div>
+      <div style="font-size:0.72rem; color:var(--accent-primary); font-weight:800;">Tap to Reassign</div>
+    </div>
+    <div id="weeklyScheduleRows">
+      <!-- Injected Mon to Sun split reassigners -->
+    </div>
+  </div>
+
+  <!-- Interactive Monthly Calendar -->
+  <div class="calendar-card">
+    <div class="calendar-header">
+      <div class="calendar-month-title" id="calendarMonthTitle">October 2026</div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-add-ex-trigger" style="padding:4px 8px; font-size:0.75rem;" onclick="changeCalendarMonth(-1)">‹ Prev</button>
+        <button class="btn-add-ex-trigger" style="padding:4px 8px; font-size:0.75rem;" onclick="jumpCalendarToday()">Today</button>
+        <button class="btn-add-ex-trigger" style="padding:4px 8px; font-size:0.75rem;" onclick="changeCalendarMonth(1)">Next ›</button>
+      </div>
+    </div>
+
+    <div class="calendar-weekdays-grid">
+      <div>MON</div>
+      <div>TUE</div>
+      <div>WED</div>
+      <div>THU</div>
+      <div>FRI</div>
+      <div>SAT</div>
+      <div>SUN</div>
+    </div>
+
+    <div class="calendar-days-grid" id="calendarDaysGrid">
+      <!-- Days populated via JS -->
+    </div>
+  </div>
+
+  <!-- Selected Date Details Drawer -->
+  <div class="cal-day-details" id="calDayDetailsBox">
+    <div style="font-family:'Outfit',sans-serif; font-size:1.05rem; font-weight:900; margin-bottom:2px;" id="calDetailDate">Monday, Oct 12, 2026</div>
+    <div style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;" id="calDetailSplit">Scheduled Split: Upper Chest and Triceps</div>
+    <div id="calDetailStatusBadge" style="margin-bottom:12px;"></div>
+    
+    <div style="display:flex; gap:10px;">
+      <button class="btn-start-workout" style="flex:2;" id="btnCalStartDay" onclick="startRoutineForCalendarDay()">
+        ▶ START THIS WORKOUT
+      </button>
+      <button class="btn-add-ex-trigger" style="flex:1;" onclick="toggleCalendarDayCompleted()">
+        ✓ Mark Done
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     TAB 4: MEASURABLE PROGRESS & TELEMETRY ANALYTICS
+     ======================================================== -->
+<section id="tabAnalytics" class="tab-view">
+  <!-- Personal Records (PR) Hall of Fame -->
+  <div class="pr-hall-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div style="font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:900;">🏆 Personal Records (PR) Hall</div>
+      <div style="font-size:0.72rem; color:var(--accent-amber); font-weight:800;">PROGRESSIVE BESTS</div>
+    </div>
+    <div id="prRecordsList">
+      <!-- Injected PR items -->
+    </div>
+  </div>
+
+  <!-- Volume Charts -->
+  <div class="chart-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div>
+        <div style="font-family:'Outfit',sans-serif; font-size:1rem; font-weight:800;">Weekly Tonnage Progression</div>
+        <div style="font-size:0.72rem; color:var(--text-muted);">Total load lifted per day (Mon - Sun)</div>
+      </div>
+      <div style="font-family:'Outfit',sans-serif; font-weight:900; color:var(--accent-emerald);" id="weekwiseTotalVol">0 kg</div>
+    </div>
+    <div style="width:100%; height:180px;" id="weekwiseChartWrap"></div>
+  </div>
+
+  <!-- 52-Week Activity Heatmap -->
+  <div class="chart-card">
+    <div style="font-family:'Outfit',sans-serif; font-size:1rem; font-weight:800; margin-bottom:10px;">52-Week Hypertrophy Heatmap</div>
+    <div class="heatmap-container">
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================================================
+     TAB 6: WORKOUT HISTORY
+     ======================================================== -->
+<section id="tabHistory" class="tab-view">
+  <h2 style="font-family:'Outfit',sans-serif; font-size:1.35rem; font-weight:800; margin-bottom:14px;">Workout History Logs</h2>
+  <div id="historyList"></div>
+</section>
+
+<!-- ========================================================
+     TAB 7: SETTINGS & 3D CUSTOM THEMES
+     ======================================================== -->
+<section id="tabSettings" class="tab-view">
+  <h2 style="font-family:'Outfit',sans-serif; font-size:1.35rem; font-weight:800; margin-bottom:14px;">Preferences & 3D Engine</h2>
+
+  <!-- NATIVE APK DOWNLOAD CARD IN SETTINGS -->
+  <div class="setting-row app-download-only-web" id="settingsApkDownloadCard" data-download-apk="true" style="background:linear-gradient(135deg, rgba(0,240,255,0.1) 0%, rgba(0,255,136,0.1) 100%); border:1px solid rgba(0,240,255,0.4); padding:16px; border-radius:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+    <div style="min-width:0;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.4rem;">🤖</span>
+        <div>
+          <div style="font-weight:900; font-size:0.95rem; color:#fff;">Planfit Workout Tracker APK</div>
+          <div style="font-size:0.74rem; color:var(--text-sub);">Native Android Application • v1.0.0 (1.10 MB)</div>
+        </div>
+      </div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px;">
+        Install on your Android phone for background services, wake locks, and haptic telemetry.
+      </div>
+    </div>
+    <a href="./Planfit_Workout_Tracker.apk" download="Planfit_Workout_Tracker.apk" class="btn-download-apk" style="text-decoration:none;">
+      <span>📥 Download APK</span>
+    </a>
+  </div>
+  
+    
+
+  <div class="setting-row">
+    <div>
+      <div style="font-weight:700; font-size:0.9rem;">Visual & 3D Theme</div>
+      <div style="font-size:0.74rem; color:var(--text-sub);">Select tactile color & lighting styling</div>
+    </div>
+    <select id="settingTheme" onchange="changeTheme(this.value)" style="background:#090d16; border:1px solid var(--border-subtle); color:#fff; padding:6px 10px; border-radius:10px; font-family:'Outfit',sans-serif; font-weight:700;">
+      <option value="3d-cyber">🎮 3D Cyber Holo</option>
+      <option value="3d-gold">👑 3D Gold Titanium</option>
+      <option value="3d-emerald">💎 3D Emerald Matrix</option>
+      <option value="3d-violet">🔮 3D Electric Violet</option>
+      <option value="3d-crimson">🔴 3D Crimson Fury</option>
+      <option value="synthwave">🌆 Miami Synthwave</option>
+      <option value="stealth">🌑 Midnight Stealth</option>
+    </select>
+  </div>
+
+  <div class="setting-row">
+    <div>
+      <div style="font-weight:700; font-size:0.9rem;">Weight Unit</div>
+      <div style="font-size:0.74rem; color:var(--text-sub);">Toggle Kilograms or Pounds</div>
+    </div>
+    <select id="settingUnit" onchange="saveSettings()" style="background:#090d16; border:1px solid var(--border-subtle); color:#fff; padding:6px 10px; border-radius:10px; font-family:'Outfit',sans-serif;">
+      <option value="kg">Kilograms (kg)</option>
+      <option value="lbs">Pounds (lbs)</option>
+    </select>
+  </div>
+
+  <div class="setting-row">
+    <div>
+      <div style="font-weight:700; font-size:0.9rem;">Synthesized Audio Cues</div>
+      <div style="font-size:0.74rem; color:var(--text-sub);">Rest & countdown beeps</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="settingSound" checked onchange="saveSettings()">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="setting-row">
+    <div>
+      <div style="font-weight:700; font-size:0.9rem;">Haptic Phone Vibration</div>
+      <div style="font-size:0.74rem; color:var(--text-sub);">Native Android vibration feedback</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="settingVibrate" checked onchange="saveSettings()">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div style="margin-top: 24px;">
+    <button onclick="exportData()" style="width:100%; padding:12px; background:rgba(255,255,255,0.08); border:1px solid var(--border-subtle); border-radius:12px; color:#fff; font-weight:800; margin-bottom:10px; cursor:pointer;">
+      📥 Backup & Export Workout Data
+    </button>
+    <button onclick="clearAllData()" style="width:100%; padding:12px; background:rgba(255,23,68,0.12); border:1px solid rgba(255,23,68,0.4); border-radius:12px; color:var(--accent-rose); font-weight:800; cursor:pointer;">
+      🗑 Reset All Logs & Telemetry
+    </button>
+  </div>
+</section>
+
+<!-- ========================================================
+     MODAL: EXERCISE LIBRARY PICKER (39 ITEMS WITH IMAGES)
+     ======================================================== -->
+<div class="modal-overlay" id="exerciseLibraryModal" onclick="closeExerciseLibraryModalOnOverlay(event)">
+  <div class="modal-sheet">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div>
+        <div style="font-family:'Outfit',sans-serif; font-size:1.2rem; font-weight:900;">Select Exercise</div>
+        <div style="font-size:0.74rem; color:var(--text-sub);">Choose from 39 exercises with real images</div>
+      </div>
+      <button style="background:rgba(255,255,255,0.08); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-weight:800; cursor:pointer;" onclick="closeExerciseLibraryModal()">✕</button>
+    </div>
+
+    <input type="text" class="modal-search-input" id="librarySearchInput" placeholder="🔍 Search by name (e.g., bench, curl, squat)..." oninput="filterExerciseLibrary()">
+
+    <div class="modal-category-chips" id="modalCategoryChips">
+      <div class="modal-cat-chip active" onclick="filterCategory('All')">All (39)</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Chest')">Chest</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Back')">Back</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Shoulders')">Shoulders</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Biceps')">Biceps</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Triceps')">Triceps</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Legs')">Legs</div>
+      <div class="modal-cat-chip" onclick="filterCategory('Core')">Core</div>
+    </div>
+
+    <div class="modal-ex-scroll-list" id="modalExScrollList">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+</div>
+
+
+<!-- REST TIMER MODAL OVERLAY -->
+<div class="rest-modal-overlay" id="restModalOverlay">
+  <div style="font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:900; color:var(--accent-primary); letter-spacing:1px; margin-bottom:6px;">
+    ⚡ REST INTERVAL
+  </div>
+  <div class="rest-clock" id="restCountdown">00:45</div>
+  <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:20px;">Prepare load for next set</div>
+
+  <div style="display:flex; gap:10px; margin-bottom:20px;">
+    <button class="btn-add-ex-trigger" onclick="addRestTime(-15)">-15s</button>
+    <button class="btn-add-ex-trigger" onclick="addRestTime(15)">+15s</button>
+    <button class="btn-add-ex-trigger" onclick="addRestTime(30)">+30s</button>
+  </div>
+
+  <button class="btn-start-workout" onclick="skipRest()">
+    RESUME TRAINING
+  </button>
+</div>
+
+<!-- BOTTOM NAVIGATION -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="switchNav('tabWorkouts')">
+    <div class="nav-icon">🏋️</div>
+    <span>Workouts</span>
+  </div>
+  <div class="nav-item" onclick="switchNav('tabRunner')">
+    <div class="nav-icon">⚡</div>
+    <span>Runner</span>
+  </div>
+  <div class="nav-item" onclick="switchNav('tabCalendar')">
+    <div class="nav-icon">📅</div>
+    <span>Schedule</span>
+  </div>
+  <div class="nav-item" onclick="switchNav('tabAnalytics')">
+    <div class="nav-icon">📊</div>
+    <span>Telemetry</span>
+  </div>
+  <div class="nav-item" onclick="switchNav('tabHistory')">
+    <div class="nav-icon">📜</div>
+    <span>History</span>
+  </div>
+  <div class="nav-item" onclick="switchNav('tabSettings')">
+    <div class="nav-icon">⚙️</div>
+    <span>Settings</span>
+  </div>
+</nav>
+
+<script src="./js/app.js"></script>
+</body>
+</html>
